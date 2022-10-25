@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Faker;
 using Faker.Generator;
 
-namespace ExternalGenerators
+namespace CharGenerator
 {
     public class DateTimeGenerator : IGenerator
     {
-        public object Generate()
+        public object Generate(GeneratorContext context)
         {
             var year = new Random().Next(1, int.MaxValue);
             var month =new Random().Next(1, 12);

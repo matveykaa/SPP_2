@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Faker;
 using Faker.Generator;
 
 namespace ExternalGenerators
 {
     public class CharGenerator : IGenerator
     {
-        public object Generate()
+        public object Generate(GeneratorContext context)
         {
             return Convert.ToChar(new Random().Next());
         }

@@ -8,7 +8,7 @@ namespace Faker.Generator
 {
     public class BoolGenerator : IGenerator
     {
-        public object Generate()
+        public object Generate(GeneratorContext context)
         {
             return Convert.ToBoolean(new Random().Next(0, 1));
         }

@@ -8,7 +8,7 @@ namespace Faker.Generator
 {
     public interface IGenerator
     {
-        object Generate();
+        object Generate(GeneratorContext context);
         Type GetGeneratorType();
     }
 }
