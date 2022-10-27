@@ -16,12 +16,12 @@ namespace Faker
         private Dictionary<Type, IGenerator> valueGenerateDictionary = new Dictionary<Type, IGenerator>();
         public T Create<T>()
         {
+            valueGenerateDictionary.Clear();
             valueGenerateDictionary.Add(typeof(bool), new BoolGenerator());
             valueGenerateDictionary.Add(typeof(double), new DoubleGenerator());
             valueGenerateDictionary.Add(typeof(float), new FloatGenerator());
             valueGenerateDictionary.Add(typeof(int), new IntGenerator());
             valueGenerateDictionary.Add(typeof(long), new LongGenerator());
-            valueGenerateDictionary.Add(typeof(Single), new SingleGenerator());
             valueGenerateDictionary.Add(typeof(string), new StringGenerator());
             AddPluginGenerators();
             createdUserTypes = new List<Type>();
@@ -55,7 +55,7 @@ namespace Faker
                 createdUserTypes.Remove(type);
                 return createdObj;
             }
-            throw new CyclicException();
+            throw new CycleException();
         }
 
         private void InitializePropsAndFields(object obj)

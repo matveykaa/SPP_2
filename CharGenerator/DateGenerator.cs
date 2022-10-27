@@ -12,7 +12,7 @@ namespace CharGenerator
     {
         public object Generate()
         {
-            var year = new Random().Next(1, int.MaxValue);
+            var year = new Random().Next(1999, 2999);
             var month =new Random().Next(1, 12);
             var day = new Random().Next(1, DateTime.DaysInMonth(year, month));
 

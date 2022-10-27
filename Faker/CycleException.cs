@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Faker
 {
-    public class CyclicException : Exception
+    public class CycleException : Exception
     {
     }
 }
