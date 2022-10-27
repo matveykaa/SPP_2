@@ -4,11 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Faker.Generator
+namespace Faker
 {
-    public interface IGenerator
+    public class CyclicException : Exception
     {
-        object Generate();
-        Type GetGeneratorType();
     }
 }

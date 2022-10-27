@@ -8,7 +8,7 @@ namespace Faker.Generator
 {
     public class StringGenerator : IGenerator
     {
-        public object Generate(GeneratorContext context)
+        public object Generate()
         {
             var size = new Random().Next(1, 10);
             var stringBuilder = new StringBuilder();

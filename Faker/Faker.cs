@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -9,203 +10,119 @@ using Faker.Generator;
 
 namespace Faker
 {
-    public class Faker
+    public class Faker : IFaker
     {
-        private Dictionary<string, IGenerator> _generators;
-        private List<Type> _cycleDependClassHolder;
-        private readonly FakerConfiguration _config;
-        public Faker()
-        {
-            _config = new FakerConfiguration();
-            _generators = new Dictionary<string, IGenerator>();
-
-            _cycleDependClassHolder = new List<Type>();
-
-            AutoLoadGenerators();
-            LoadGenerators();
-        }
-
-
-        private void AutoLoadGenerators()
-        {
-            var pluginsLoader = new PluginLoader("D:\\Учеба\\5sem\\СПП\\lab2\\Faker\\Faker\\Plugins");
-            _generators = pluginsLoader.LoadPlugins(this);
-        }
-
-        private void LoadGenerators()
-        {
-            _generators.Add(typeof(string).ToString(), new StringGenerator());
-            _generators.Add(typeof(Single).ToString(), new SingleGenerator());
-        }
-
+        private List<Type> createdUserTypes;
+        private Dictionary<Type, IGenerator> valueGenerateDictionary = new Dictionary<Type, IGenerator>();
         public T Create<T>()
         {
-            return (T)Create(typeof(T));
+            valueGenerateDictionary.Add(typeof(bool), new BoolGenerator());
+            valueGenerateDictionary.Add(typeof(double), new DoubleGenerator());
+            valueGenerateDictionary.Add(typeof(float), new FloatGenerator());
+            valueGenerateDictionary.Add(typeof(int), new IntGenerator());
+            valueGenerateDictionary.Add(typeof(long), new LongGenerator());
+            valueGenerateDictionary.Add(typeof(Single), new SingleGenerator());
+            valueGenerateDictionary.Add(typeof(string), new StringGenerator());
+            AddPluginGenerators();
+            createdUserTypes = new List<Type>();
+            return (T)CreateDTO(typeof(T));
         }
-
-        public object Create(Type type)
+        private object CreateDTO(Type type)
         {
-                if (type.IsGenericType)
-                {
-                    try
-                    {
-                        return _generators.ContainsKey(Regex.Replace(type.Name.ToString(), "`.+$", ""))
-                            ? _generators[Regex.Replace(type.Name.ToString(), "`.+$", "")]
-                                .Generate(new GeneratorContext(this, type))
-                            : CreateObject(type);
-                    }
-                    catch (Exception)
-                    {
-                        return null;
-                    }
-                }
-                else
-                    return _generators.ContainsKey(type.ToString()) ? _generators[type.ToString()].Generate(new GeneratorContext(this, type)) : CreateObject(type);
-            }
-
-        private object CreateObject(Type type)
-        {
-            object obj = null;
-            _cycleDependClassHolder.Add(type);
-
-            obj = InitConstructor(GetSortedConstructorInfos(type, new Comparer()));
-            InitFields(obj, type.GetFields());
-            InitProperties(obj, type.GetProperties());
-
-            _cycleDependClassHolder.Remove(type);
-            return obj;
-        }
-
-        private object InitConstructor(IEnumerable<ConstructorInfo> constructors)
-        {
-            object obj = null;
-
-            foreach (var constructor in constructors)
+            bool isSystem = false;
+            if (hasGenerator(type))
             {
-                if (constructor.IsPrivate)
-                    continue;
-
-                try
-                {
-                    var list = new List<object>();
-
-                    for (var i = 0; i < constructor.GetParameters().Length; i++)
-                    {
-                        var paramType = constructor.GetParameters()[i].ParameterType;
-
-                        var generator = _config.GetGeneratorByMemberInfo(constructor.GetParameters()[i].Member);
-
-                        if (generator != null)
-                            list.Add(generator.Generate(new GeneratorContext(this, paramType)));
-                        else
-                            list.Add(Create(paramType));
-                    }
-                    obj = constructor.Invoke(list.ToArray());
-                    break;
-                }
-                catch (Exception)
-                {
-                }
+                isSystem = true;
+                return Generate(type)!;
             }
-
-            if (obj == null) throw new Exception("Faker can't crate object of class " + obj.GetType().Name);
-            return obj;
+            if (type.IsGenericType)
+            {
+                isSystem = true;
+                var collection = (IList)Activator.CreateInstance(type);
+                var collectionParametrizedType = type.GetGenericArguments()[0];
+                collection.Add(CreateDTO(collectionParametrizedType));
+                collection.Add(CreateDTO(collectionParametrizedType));
+                return collection;
+            }
+            if (!createdUserTypes.Contains(type))
+            {
+                if (!isSystem)
+                {
+                    createdUserTypes.Add(type);
+                }
+                var createdObj = CreateObject(type);
+                InitializePropsAndFields(createdObj);
+                createdUserTypes.Remove(type);
+                return createdObj;
+            }
+            throw new CyclicException();
         }
 
-
-        private void InitFields(object obj, IEnumerable<FieldInfo> fields)
+        private void InitializePropsAndFields(object obj)
         {
-            var defaultConstr = obj.GetType().GetConstructors()[0];
-            var defaultObj = defaultConstr.Invoke(new object[defaultConstr.GetParameters().Length]);
-
+            var properties = obj.GetType().GetProperties();
+            var fields = obj.GetType().GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance);
             foreach (var field in fields)
             {
-                var defaultValue = field.GetValue(defaultObj);
-                var value = field.GetValue(obj);
-
-                if ((defaultValue == null && value != null)) continue;
-                if (value != null && !defaultValue.Equals(value)) continue;
-
-                try
-                {
-                    if (field.FieldType.IsPrimitive ^ (field.FieldType == typeof(string) & field.GetValue(obj) != null))
-                    {
-                        if (field.FieldType == typeof(string) && !field.GetValue(obj).Equals("")) continue;
-
-                        var defValue = Activator.CreateInstance(field.FieldType);
-                        var qe = field.GetValue(obj);
-
-                        if (defValue.Equals(qe))
-                        {
-                            var generator = _config.GetGeneratorByName(field.Name, obj.GetType());
-
-                            if (generator != null)
-                                field.SetValue(obj, generator.Generate(new GeneratorContext(this, field.FieldType)));
-                            else
-                                field.SetValue(obj, _generators[field.FieldType.ToString()]
-                                    ?.Generate(new GeneratorContext(this, field.FieldType)));
-                        }
-                    }
-                    else
-                        field.SetValue(obj, Create(field.FieldType));
-                }
-                catch (Exception)
-                {
-                }
-
+                var fd = CreateDTO(field.FieldType);
+                field.SetValue(obj, fd);
             }
-
-        }
-
-        private void InitProperties(object obj, IEnumerable<PropertyInfo> properties)
-        {
-            var defaultConstr = obj.GetType().GetConstructors()[0];
-            var defaultObj = defaultConstr.Invoke(new object[defaultConstr.GetParameters().Length]);
-
             foreach (var property in properties)
             {
-                var defaultValue = property.GetValue(defaultObj);
-                var value = property.GetValue(obj);
-
-                if (defaultValue == null && value != null) continue;
-                if (value != null && !defaultValue.Equals(value)) continue;
-
-
-                if (property.PropertyType.IsPrimitive ^ property.PropertyType == typeof(string))
+                if (property.CanWrite)
                 {
-
-                    if (property.SetMethod != null && (property.SetMethod.IsPrivate | property.SetMethod.IsFamily))
-                        continue;
-
-
-                    var generator = _config.GetGeneratorByName(property.Name, obj.GetType());
-
-                    try
-                    {
-                        if (generator != null)
-                            property.SetValue(obj,
-                                generator.Generate(new GeneratorContext(this, property.PropertyType)));
-                        else
-                            property.SetValue(obj,
-                                _generators[property.PropertyType.ToString()]
-                                    ?.Generate(new GeneratorContext(this, property.PropertyType)));
-                    }
-                    catch (Exception)
-                    {
-                    }
-
+                    var pr = CreateDTO(property.PropertyType);
+                    property.SetValue(obj, pr);
                 }
-                else Create(property.PropertyType);
             }
         }
-
-        private IEnumerable<ConstructorInfo> GetSortedConstructorInfos(Type type, IComparer<ConstructorInfo> constrCompare)
+        private ConstructorInfo GetConstructor(Type type)
         {
-            var constInfoList = type.GetConstructors().ToList();
-            constInfoList.Sort(constrCompare);
-
-            return constInfoList;
+            var constructors = type.GetConstructors();
+            var constructor = constructors.OrderBy(c => c.GetParameters().Length).FirstOrDefault();
+            return constructor;
+        }
+        private object CreateObject(Type type)
+        {
+            var constructor = GetConstructor(type);
+            var constructorParametrs = constructor.GetParameters();
+            var paramsList = new List<object>();
+            foreach (var parameter in constructorParametrs)
+            {
+                paramsList.Add(CreateDTO(parameter.ParameterType));
+            }
+            return constructor.Invoke(paramsList.ToArray());
         }
 
+        public bool hasGenerator(Type type)
+        {
+            return valueGenerateDictionary.ContainsKey(type);
+        }
+        public object Generate(Type type)
+        {
+            if (hasGenerator(type))
+            {
+                return valueGenerateDictionary[type].Generate();
+            }
+            return null;
+        }
+
+        private void AddPluginGenerators()
+        {
+            string path = Path.Combine(Directory.GetCurrentDirectory(), "..\\..\\..\\..\\");
+            string[] dlls = Directory.GetFiles(path, "*.dll");
+            foreach (string dll in dlls)
+            {
+                Assembly asm = Assembly.LoadFrom(dll);
+                foreach (var type in asm.GetExportedTypes())
+                {
+                    if (type.IsClass && typeof(IGenerator).IsAssignableFrom(type))
+                    {
+                        IGenerator generator = (IGenerator)Activator.CreateInstance(type);
+                        valueGenerateDictionary.Add(generator.GetGeneratorType(), generator);
+                    }
+                }
+            }
+        }
     }
 }

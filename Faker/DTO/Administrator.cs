@@ -4,11 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Faker.Generator
+namespace Faker.DTO
 {
-    public interface IGenerator
+    public class Administrator
     {
-        object Generate();
-        Type GetGeneratorType();
+        public int personId { get; set; }
+        public string name { get; set; }
+
     }
 }

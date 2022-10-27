@@ -8,7 +8,7 @@ namespace Faker.Generator
 {
     public class SingleGenerator: IGenerator
     {
-        public object Generate(GeneratorContext context)
+        public object Generate()
         {
             return (Single)new Random().NextDouble();
         }

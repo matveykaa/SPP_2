@@ -10,7 +10,7 @@ namespace ExternalGenerators
 {
     public class CharGenerator : IGenerator
     {
-        public object Generate(GeneratorContext context)
+        public object Generate()
         {
             return Convert.ToChar(new Random().Next());
         }

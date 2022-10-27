@@ -10,7 +10,7 @@ namespace CharGenerator
 {
     public class DateTimeGenerator : IGenerator
     {
-        public object Generate(GeneratorContext context)
+        public object Generate()
         {
             var year = new Random().Next(1, int.MaxValue);
             var month =new Random().Next(1, 12);
