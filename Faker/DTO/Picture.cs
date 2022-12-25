@@ -9,6 +9,8 @@ namespace Faker.DTO
     public class Picture
     {
         public int pictureId { get; set; }
+
+        public int CCC;   
         public string url { get; set; }
         public DateTime addedDate { get; set; }
         public Collection collection { get; set; }

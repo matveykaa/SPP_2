@@ -2,18 +2,21 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Faker.DTO;
 using Faker.Generator;
 
 namespace Faker
 {
     public class Faker : IFaker
     {
-        private List<Type> createdUserTypes;
+        private List<Type>? createdUserTypes;
         private Dictionary<Type, IGenerator> valueGenerateDictionary = new Dictionary<Type, IGenerator>();
+
         public T Create<T>()
         {
             valueGenerateDictionary.Clear();
@@ -27,29 +30,23 @@ namespace Faker
             createdUserTypes = new List<Type>();
             return (T)CreateDTO(typeof(T));
         }
+
         private object CreateDTO(Type type)
         {
-            bool isSystem = false;
             if (hasGenerator(type))
             {
-                isSystem = true;
                 return Generate(type)!;
             }
             if (type.IsGenericType)
             {
-                isSystem = true;
                 var collection = (IList)Activator.CreateInstance(type);
                 var collectionParametrizedType = type.GetGenericArguments()[0];
-                collection.Add(CreateDTO(collectionParametrizedType));
                 collection.Add(CreateDTO(collectionParametrizedType));
                 return collection;
             }
             if (!createdUserTypes.Contains(type))
             {
-                if (!isSystem)
-                {
-                    createdUserTypes.Add(type);
-                }
+                createdUserTypes.Add(type);
                 var createdObj = CreateObject(type);
                 InitializePropsAndFields(createdObj);
                 createdUserTypes.Remove(type);
@@ -98,7 +95,8 @@ namespace Faker
         {
             return valueGenerateDictionary.ContainsKey(type);
         }
-        public object Generate(Type type)
+
+        public object? Generate(Type type)
         {
             if (hasGenerator(type))
             {

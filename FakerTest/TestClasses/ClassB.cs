@@ -2,7 +2,7 @@
 {
     public class ClassB
     {
-        public ClassA classA;
+        public ClassA? classA;
 
         public int b;
     }

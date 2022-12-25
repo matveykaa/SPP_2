@@ -10,6 +10,6 @@ namespace Faker.DTO
     {
         public int collectionId { get; set; }
         public long contentNumber { get; set; }
-        public string title { get; set; }
+        public string? title { get; set; }
     }
 }

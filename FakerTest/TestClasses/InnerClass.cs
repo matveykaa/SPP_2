@@ -2,6 +2,6 @@
 {
     public class InnerClass
     {
-        public string Name { get; set; }
+        public string? Name { get; set; }
     }
 }

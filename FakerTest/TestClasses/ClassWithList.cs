@@ -4,6 +4,6 @@ namespace FakerTests.TestClasses
 {
     public class ClassWithList
     {
-        public List<InnerClass> InnerClasses { get; set; }
+        public List<InnerClass>? InnerClasses { get; set; }
     }
 }
